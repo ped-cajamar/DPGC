@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DPGC - Sistema de Inteligência Integrada</title>
+<style>
+  :root { --bg:#070907; --panel:#121512; --line:#2a322a; --green:#39ff6a; --green-dim:#1f9b40; --white:#e6ebe6; --yellow:#ffd400; --blue:#2f6bff; --blue-dark:#0d1f4d; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin:0; background:var(--bg); color:var(--green); font-family:"Courier New",Consolas,Courier,monospace; font-size:15px; line-height:1.6;
+    background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px); }
+  .tape { height:14px; background:repeating-linear-gradient(-45deg,var(--yellow) 0 16px,#111 16px 32px); }
+  header { display:flex; gap:24px; align-items:center; flex-wrap:wrap; padding:24px clamp(16px,4vw,48px); background:var(--blue-dark); border-bottom:3px solid var(--blue); }
+  .logo-placeholder { width:96px; height:96px; flex:none; border:3px dashed var(--yellow); color:var(--yellow); display:flex; align-items:center; justify-content:center; text-align:center; font-size:12px; font-weight:bold; line-height:1.2; }
+  header h1 { margin:0; font-size:clamp(20px,3.4vw,32px); color:var(--white); }
+  header .sub { color:var(--yellow); margin:4px 0 0; }
+  .welcome { flex:1 1 320px; border-left:4px solid var(--yellow); padding:8px 16px; background:rgba(0,0,0,.35); color:var(--white); }
+  .welcome p { margin:0 0 6px; }
+  .welcome .sig { color:var(--yellow); margin:0; }
+  nav { display:flex; gap:8px; flex-wrap:wrap; padding:10px clamp(16px,4vw,48px); background:#000; border-bottom:1px solid var(--line); }
+  nav a { color:var(--green); text-decoration:none; padding:2px 10px; border:1px solid var(--line); }
+  nav a:hover, nav a:focus-visible { background:var(--green); color:#000; outline:none; }
+  .ticker { overflow:hidden; white-space:nowrap; background:#000; border-bottom:1px solid var(--line); color:var(--yellow); padding:4px 0; }
+  .ticker span { display:inline-block; padding-left:100%; animation:scroll 70s linear infinite; }
+  @keyframes scroll { to { transform:translateX(-100%); } }
+  main { padding:24px clamp(16px,4vw,48px) 48px; max-width:1200px; margin:0 auto; }
+  section { margin-bottom:48px; }
+  h2 { color:var(--white); font-size:20px; margin:0 0 16px; padding-bottom:6px; border-bottom:2px solid var(--blue); }
+  h2::before { content:"> "; color:var(--yellow); }
+  h3 { color:var(--white); }
+  p { max-width:78ch; }
+  .status-line { color:var(--green-dim); margin-bottom:20px; }
+  .cursor::after { content:"█"; animation:blink 1s steps(2) infinite; margin-left:4px; }
+  @keyframes blink { 50% { opacity:0; } }
+  @media (prefers-reduced-motion: reduce) { .cursor::after, .ticker span { animation:none; } .ticker span { padding-left:0; } }
+  .two-col { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:24px; }
+  .memo { background:var(--panel); border:1px solid var(--line); border-left:6px solid var(--blue); padding:14px 18px; }
+  .memo h3 { margin:0 0 8px; font-size:16px; }
+  .memo p { margin:0 0 10px; color:#b9c4b9; }
+  .memo ul { margin:0; padding-left:20px; color:#b9c4b9; }
+  .memo.warn { border-left-color:var(--yellow); }
+  .stamp { display:inline-block; border:2px solid var(--yellow); color:var(--yellow); padding:0 8px; font-size:12px; transform:rotate(-2deg); margin-bottom:8px; }
+
+  .targets { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; }
+  .target { background:var(--panel); border:1px solid var(--line); border-top:4px solid var(--yellow); padding:14px; }
+  .target h3 { margin:0 0 6px; font-size:16px; }
+  .target .meta { color:var(--yellow); font-size:13px; margin-bottom:6px; }
+  .target p { margin:0; color:#b9c4b9; }
+  .villain-photo { position:relative; aspect-ratio:3/4; margin:0 0 12px; border:2px dashed var(--yellow); background:#0b0f0b; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .villain-photo::before { content:"FOTO\A" attr(data-file); white-space:pre; text-align:center; color:var(--yellow); font-size:12px; }
+  .villain-photo img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:grayscale(.35) contrast(1.1); }
+
+  .map-placeholder { position:relative; aspect-ratio:16/9; margin-top:28px; border:2px dashed var(--blue); background:repeating-linear-gradient(45deg,#0a0e1a 0 12px,#0c1224 12px 24px); display:flex; align-items:center; justify-content:center; text-align:center; color:var(--blue); padding:16px; overflow:hidden; }
+  .map-placeholder::before { content:"[ MAPA ESTÁTICO DE GOTHAM CITY ]\A" attr(data-file); white-space:pre; }
+  .map-placeholder img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#000; }
+  .map-legend { list-style:none; padding:0; margin:12px 0 0; display:flex; gap:12px; flex-wrap:wrap; }
+  .map-legend li { border:1px solid var(--line); padding:4px 12px; color:var(--white); }
+  .map-legend li::before { content:"■ "; color:var(--yellow); }
+
+  .table-wrap { overflow-x:auto; border:1px solid var(--line); }
+  table { border-collapse:collapse; width:100%; min-width:980px; background:var(--panel); }
+  caption { text-align:left; padding:8px 12px; color:var(--yellow); }
+  th, td { padding:8px 12px; border-bottom:1px solid var(--line); text-align:left; white-space:nowrap; }
+  th { background:var(--blue-dark); color:var(--white); border-bottom:2px solid var(--blue); }
+  tbody tr:nth-child(even) { background:rgba(255,255,255,.03); }
+  tbody tr:hover { background:rgba(57,255,106,.08); }
+
+  .territory-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:16px; }
+  .territory-card { background:var(--panel); border:1px solid var(--line); border-left:6px solid var(--blue); padding:14px 16px; }
+  .territory-card h3 { margin:0 0 8px; font-size:17px; }
+  .territory-card ul { list-style:none; margin:0; padding:0; }
+  .territory-card li { padding:3px 0; }
+  .territory-card .label { color:var(--yellow); }
+  .infra-status { display:none; }
+  footer { border-top:3px solid var(--blue); padding:16px clamp(16px,4vw,48px); color:var(--green-dim); font-size:13px; background:#000; }
+</style>
+</head>
+<body>
+<div class="tape"></div>
+
+<header>
+  <div class="logo-placeholder" id="logo-dpgc">[LOGO<br>DPGC]<br>96x96</div>
+  <div>
+    <h1>DPGC - Sistema de Inteligência Integrada</h1>
+    <p class="sub">Delegacia de Polícia de Gotham City | Acesso restrito | Terminal 07</p>
+  </div>
+  <div class="welcome">
+    <p>Bem-vindo, oficial. Gotham não dorme, e nós também não. Consulte os dados, cruze as informações e mantenha o sigilo desta rede. Se algo parecer fácil demais, desconfie.</p>
+    <p class="sig">- Comissário James Gordon</p>
+  </div>
+</header>
+
+<nav>
+  <a href="#sobre">Sobre a DPGC</a>
+  <a href="#gotham">Gotham Hoje</a>
+  <a href="#inteligencia">Inteligência Ativa</a>
+  <a href="#protocolos">Protocolos</a>
+  <a href="#ocorrencias">Boletins de Ocorrência</a>
+  <a href="#territorios">Inteligência Territorial</a>
+</nav>
+
+<div class="ticker"><span>GOTHAM GAZETTE: Chuva fina e neblina cobrem a cidade esta noite *** Cais de Miller Harbor registra mais um carregamento desviado *** Prefeitura promete novas luminárias para Crime Alley (de novo) *** Iceberg Lounge reabre após reforma "sem relação com o incêndio" *** Corregedoria da DPGC revisa boletins arquivados sem laudo pericial *** Arkham: transferência de detentos é adiada por segurança ***</span></div>
+
+<main>
+  <p class="status-line cursor">SESSÃO AUTENTICADA // NÍVEL DE ACESSO: CONFIDENCIAL // CONEXÃO LEGADA v2.3 // ÚLTIMO BACKUP: 03:00</p>
+
+  <section id="sobre">
+    <h2>Sobre a DPGC</h2>
+    <div class="two-col">
+      <div class="memo">
+        <h3>Nossa história</h3>
+        <p>Fundada em 1887, logo depois do Grande Incêndio do Porto, a Delegacia de Polícia de Gotham City funciona no velho prédio de pedra da Guarda Municipal, na Avenida Miller. As paredes ainda guardam marcas de fuligem e de mais de um século de promessas de reforma.</p>
+        <p>Hoje são 3.400 oficiais em sete distritos, uma frota de viaturas que nunca está completa e um laboratório forense com fila de espera de três semanas.</p>
+      </div>
+      <div class="memo">
+        <h3>Estrutura da corporação</h3>
+        <ul>
+          <li>Divisão de Crimes Maiores (Homicídios, Roubos e Sequestros)</li>
+          <li>Unidade de Crimes Especiais (MCU)</li>
+          <li>Central de Despacho 24h</li>
+          <li>Laboratório Forense e Balística</li>
+          <li>Corregedoria (Assuntos Internos)</li>
+          <li>Arquivo Central, subsolo B</li>
+        </ul>
+      </div>
+      <div class="memo warn">
+        <span class="stamp">AVISO INTERNO</span>
+        <h3>Memorando da Corregedoria</h3>
+        <p>Lembramos que todo boletim com prejuízo declarado deve ser acompanhado de laudo e fotos da perícia. Casos arquivados sem laudo serão auditados. Dúvidas, falar com a sala 214. Café da copa continua sem açúcar.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="gotham">
+    <h2>Gotham Hoje</h2>
+    <div class="two-col">
+      <div class="memo">
+        <h3>A cidade</h3>
+        <p>Gotham se espalha por ilhas ligadas por pontes e túneis, entre a baía e o rio. Arranha-céus de pedra e gárgulas dividem o horizonte com chaminés de fábricas. Há mais de um século a cidade convive com a chuva, com a névoa e com a desconfiança.</p>
+        <p>O contraste é visível: coberturas no Diamond District, a poucos quilômetros de cortiços sem luz nas ruas do Narrows. Dizem que a cidade premia quem aprende a andar na penumbra.</p>
+      </div>
+      <div class="memo">
+        <h3>Previsão para esta noite</h3>
+        <ul>
+          <li>Céu encoberto, chuva fina após as 22h</li>
+          <li>Visibilidade reduzida no Narrows e em Miller Harbor</li>
+          <li>Temperatura: 11 °C, sensação de 8 °C</li>
+          <li>Maré alta às 01h40: atenção nas docas</li>
+        </ul>
+      </div>
+      <div class="memo">
+        <h3>Pelo rádio da polícia</h3>
+        <ul>
+          <li>Roubo em andamento perto da Estação Central</li>
+          <li>Apagão parcial em dois quarteirões de Crime Alley</li>
+          <li>Caminhão de carga abandonado na Doca 9</li>
+          <li>Vigilância reforçada em Arkham até segunda ordem</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="inteligencia">
+    <h2>Inteligência Ativa</h2>
+    <div class="targets">
+      <article class="target">
+        <figure class="villain-photo" data-file="imagens/coringa.jpg"><img src="imagens/coringa.jpg" alt="Foto do Coringa" onerror="this.remove()"></figure>
+        <h3>Coringa</h3>
+        <div class="meta">Ameaça: crítica | Última vista: The Narrows</div>
+        <p>Identidade desconhecida. Aposta no caos e em armadilhas elaboradas. Evite negociar e nunca o subestime.</p>
+      </article>
+      <article class="target">
+        <figure class="villain-photo" data-file="imagens/pinguim.jpg"><img src="imagens/pinguim.jpg" alt="Foto do Pinguim" onerror="this.remove()"></figure>
+        <h3>Pinguim (Oswald Cobblepot)</h3>
+        <div class="meta">Ameaça: alta | Base: Iceberg Lounge, Park Row</div>
+        <p>Empresário e dono do contrabando de armas. Mantém políticos e policiais na folha de pagamento.</p>
+      </article>
+      <article class="target">
+        <figure class="villain-photo" data-file="imagens/charada.jpg"><img src="imagens/charada.jpg" alt="Foto do Charada" onerror="this.remove()"></figure>
+        <h3>Charada (Edward Nygma)</h3>
+        <div class="meta">Ameaça: média | Última vista: Diamond District</div>
+        <p>Deixa enigmas na cena do crime. Obcecado por provar que é mais inteligente que a polícia inteira.</p>
+      </article>
+      <article class="target">
+        <figure class="villain-photo" data-file="imagens/duas-caras.jpg"><img src="imagens/duas-caras.jpg" alt="Foto do Duas-Caras" onerror="this.remove()"></figure>
+        <h3>Duas-Caras (Harvey Dent)</h3>
+        <div class="meta">Ameaça: alta | Última vista: Crime Alley</div>
+        <p>Ex-promotor distrital. Decide tudo com uma moeda. Costuma atacar tribunais e bancos.</p>
+      </article>
+      <article class="target">
+        <figure class="villain-photo" data-file="imagens/espantalho.jpg"><img src="imagens/espantalho.jpg" alt="Foto do Espantalho" onerror="this.remove()"></figure>
+        <h3>Espantalho (Jonathan Crane)</h3>
+        <div class="meta">Ameaça: alta | Base provável: Burnley</div>
+        <p>Psiquiatra que produz toxina do medo em laboratórios clandestinos. Alvo de vigilância contínua.</p>
+      </article>
+      <article class="target">
+        <figure class="villain-photo" data-file="imagens/hera-venenosa.jpg"><img src="imagens/hera-venenosa.jpg" alt="Foto da Hera Venenosa" onerror="this.remove()"></figure>
+        <h3>Hera Venenosa (Pamela Isley)</h3>
+        <div class="meta">Ameaça: média | Última vista: Robbinsville</div>
+        <p>Botânica radical. Ataca empresas poluidoras e usa toxinas vegetais. Suspeita de contatos nas docas.</p>
+      </article>
+    </div>
+
+    <div class="map-placeholder" id="mapa-gotham" data-file="imagens/mapa-gotham.png"><img src="imagens/mapa-gotham.png" alt="Mapa estático de Gotham City" onerror="this.remove()"></div>
+    <ul class="map-legend">
+      <li>The Bowery</li>
+      <li>Crime Alley</li>
+      <li>Diamond District</li>
+      <li>The Narrows</li>
+    </ul>
+  </section>
+
+  <section id="protocolos">
+    <h2>Protocolos e Regras da Casa</h2>
+    <div class="two-col">
+      <div class="memo">
+        <h3>Códigos de rádio</h3>
+        <ul>
+          <li>Código 2: chamado sem urgência</li>
+          <li>Código 3: com sirene e giroflex</li>
+          <li>Código 10-99: policial em apuros</li>
+          <li>Código Arkham: fuga de detento perigoso</li>
+        </ul>
+      </div>
+      <div class="memo">
+        <h3>Regras de ouro</h3>
+        <ul>
+          <li>Não comente nada sobre vigilantes em canais abertos.</li>
+          <li>Desconfie de enigmas e de risadas em cenas de crime.</li>
+          <li>Registre tudo: o boletim é a sua única defesa.</li>
+          <li>O telhado do prédio é de acesso exclusivo do Comissário.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="ocorrencias">
+    <h2>Últimos Boletins de Ocorrência</h2>
+    <div class="table-wrap">
+      <table id="tabela-ocorrencias">
+        <caption>Registros de 15/09/2026 a 10/11/2026 // Fonte: sistema legado DPGC (formatos não padronizados)</caption>
+        <thead>
+          <tr>
+            <th>ID Boletim</th>
+            <th>Data/Hora</th>
+            <th>Local (Bairro)</th>
+            <th>Categoria do Crime</th>
+            <th>Prejuízo Estimado</th>
+            <th>Oficial Relator</th>
+            <th>Status</th>
+            <th>Tempo de Resposta</th>
+          </tr>
+        </thead>
+        <tbody>
+<tr><td>BO-2026-1096</td><td>10-11-26 04:16</td><td>Miller Harbor</td><td>Tráfico</td><td>R$ 8.500</td><td>Maggie Sawyer</td><td>Em Investigação</td><td>N/D</td></tr>
+<tr><td>BO-2026-1095</td><td>09/11/2026 12:51</td><td>The Narrows</td><td>Agressão</td><td>n/d</td><td>Crispus Allen</td><td>Em Investigação</td><td>23 min</td></tr>
+<tr><td>BO-2026-1094</td><td>09/11/2026 04:05</td><td>crime alley</td><td>Tráfico</td><td>n/d</td><td>Harvey Bullock</td><td>RESOLVIDO</td><td>8 min</td></tr>
+<tr><td>BO-2026-1093</td><td>07/11/2026 19:49</td><td>Crime Alley</td><td>Agressão</td><td>N/A</td><td>Maggie Sawyer</td><td>Arquivado</td><td>21 min</td></tr>
+<tr><td>BO-2026-1092</td><td>07/11/2026 17:22</td><td>Robbinsville</td><td>Fraude</td><td>R$ 64.000</td><td>Maggie Sawyer</td><td>Resolvido</td><td>N/D</td></tr>
+<tr><td>BO-2026-1091</td><td>07-11-26 08:11</td><td>Old Gotham</td><td>Furto</td><td>R$ 1.500</td><td>Crispus Allen</td><td>Em Investigação</td><td>7</td></tr>
+<tr><td>BO-2026-1090</td><td>06/11/2026 09:17</td><td>The Narrows</td><td>Agressão</td><td>N/A</td><td>Harvey Bullock</td><td>Resolvido</td><td>N/D</td></tr>
+<tr><td>BO-2026-1089</td><td>06-11-26 02:11</td><td>miller harbor</td><td>Agressão</td><td>N/A</td><td>Renee Montoya</td><td>ARQUIVADO</td><td>18</td></tr>
+<tr><td>BO-2026-1088</td><td>06/11/2026 02:06</td><td>Crime Alley</td><td>Roubo a Transeunte</td><td>R$ 850</td><td>Stan Merkel</td><td>Em Investigação</td><td>22 min</td></tr>
+<tr><td>BO-2026-1087</td><td>Novembro 5 2026 08:31</td><td>Burnley</td><td>Furto de Veículo</td><td>R$ 17.500</td><td>Maggie Sawyer</td><td>Resolvido</td><td>15</td></tr>
+<tr><td>BO-2026-1086</td><td>03-11-26 22:13</td><td>Bowery</td><td>Assalto a Banco</td><td>1,2M</td><td>Maggie Sawyer</td><td>em investigação</td><td>9 min</td></tr>
+<tr><td>BO-2026-1085</td><td>Novembro 3 2026 05:49</td><td>The Bowery</td><td>Roubo a Joalheria</td><td>R$ 440 mil</td><td>Arnold Flass</td><td>Arquivado</td><td>9 min</td></tr>
+<tr><td>BO-2026-1084</td><td>Novembro 2 2026 19:08</td><td>The Bowery</td><td>Assalto a Banco</td><td>1,4M</td><td>Renee Montoya</td><td>Em Investigação</td><td>15 min</td></tr>
+<tr><td>BO-2026-1083</td><td>Novembro 1 2026 15:23</td><td>The Bowery</td><td>Roubo a Joalheria</td><td>580000</td><td>Harvey Bullock</td><td>EM INVESTIGAÇÃO</td><td>12 min</td></tr>
+<tr><td>BO-2026-1082</td><td>Outubro 31 2026 23:54</td><td>Old Gotham</td><td>Fraude</td><td>54000</td><td>Stan Merkel</td><td>Em Investigação</td><td>9 min</td></tr>
+<tr><td>BO-2026-1081</td><td>31/10/2026 18:02</td><td>Old Gotham</td><td>Vandalismo</td><td>R$ 500</td><td>Crispus Allen</td><td>Em Investigação</td><td>7</td></tr>
+<tr><td>BO-2026-1080</td><td>31/10/2026 11:33</td><td>Park Row</td><td>Roubo a Transeunte</td><td>2000</td><td>Renee Montoya</td><td>resolvido</td><td>10 min</td></tr>
+<tr><td>BO-2026-1079</td><td>31-10-26 00:09</td><td>The Narrows</td><td>Incêndio Criminoso</td><td>106000</td><td>Renee Montoya</td><td>Arquivado</td><td>22 min</td></tr>
+<tr><td>BO-2026-1078</td><td>Outubro 30 2026 15:48</td><td>Miller Harbor</td><td>Desvio de Mercadoria</td><td>R$ 129.000</td><td>Stan Merkel</td><td>Em Investigação</td><td>15 min</td></tr>
+<tr><td>BO-2026-1077</td><td>Outubro 30 2026 03:13</td><td>Amusement Mile</td><td>Agressão</td><td>N/A</td><td>Stan Merkel</td><td>Em Investigação</td><td>18 min</td></tr>
+<tr><td>BO-2026-1076</td><td>Outubro 30 2026 00:33</td><td>The Bowery</td><td>Assalto a Banco</td><td>1,2M</td><td>Arnold Flass</td><td>Em Investigação</td><td>10</td></tr>
+<tr><td>BO-2026-1075</td><td>29-10-26 22:42</td><td>The Bowery</td><td>Roubo de Carga</td><td>164k</td><td>Crispus Allen</td><td>EM INVESTIGAÇÃO</td><td>15 min</td></tr>
+<tr><td>BO-2026-1074</td><td>29/10/2026 11:30</td><td>Park Row</td><td>Fraude</td><td>R$ 18.000</td><td>Arnold Flass</td><td>Resolvido</td><td>12</td></tr>
+<tr><td>BO-2026-1073</td><td>26/10/2026 04:55</td><td>The Bowery</td><td>Roubo de Carga</td><td>R$ 210.000</td><td>Arnold Flass</td><td>RESOLVIDO</td><td>15 min</td></tr>
+<tr><td>BO-2026-1072</td><td>25-10-26 18:06</td><td>Robbinsville</td><td>Furto</td><td>13000</td><td>Stan Merkel</td><td>Arquivado</td><td>N/D</td></tr>
+<tr><td>BO-2026-1071</td><td>Outubro 24 2026 20:30</td><td>Old Gotham</td><td>Furto</td><td>R$ 8.500</td><td>Crispus Allen</td><td>Resolvido</td><td>12 min</td></tr>
+<tr><td>BO-2026-1070</td><td>22-10-26 16:57</td><td>Crime Alley</td><td>Furto</td><td>1,5k</td><td>Renee Montoya</td><td>Arquivado</td><td>29 min</td></tr>
+<tr><td>BO-2026-1069</td><td>Outubro 21 2026 02:29</td><td>Park Row</td><td>Furto de Veículo</td><td>R$ 41.000</td><td>Crispus Allen</td><td>Resolvido</td><td>8 min</td></tr>
+<tr><td>BO-2026-1068</td><td>Outubro 20 2026 23:25</td><td>The Narrows</td><td>Agressão</td><td>N/A</td><td>Renee Montoya</td><td>em investigação</td><td>18 min</td></tr>
+<tr><td>BO-2026-1067</td><td>Outubro 20 2026 16:19</td><td>The Bowery</td><td>Assalto a Banco</td><td>n/d</td><td>Maggie Sawyer</td><td>Resolvido</td><td>12</td></tr>
+<tr><td>BO-2026-1066</td><td>20-10-26 13:53</td><td>Amusement Mile</td><td>Agressão</td><td>N/A</td><td>Harvey Bullock</td><td>Arquivado</td><td>11 min</td></tr>
+<tr><td>BO-2026-1065</td><td>20-10-26 13:37</td><td>Old Gotham</td><td>Furto</td><td>R$ 2.500</td><td>Harvey Bullock</td><td>Arquivado</td><td>11 min</td></tr>
+<tr><td>BO-2026-1064</td><td>20-10-26 11:40</td><td>crime alley</td><td>Vandalismo</td><td>R$ 1.000</td><td>Crispus Allen</td><td>Em Investigação</td><td>22</td></tr>
+<tr><td>BO-2026-1063</td><td>19/10/2026 16:16</td><td>The Bowery</td><td>Furto de Veículo</td><td>R$ 50.000</td><td>Arnold Flass</td><td>Resolvido</td><td>8</td></tr>
+<tr><td>BO-2026-1062</td><td>Outubro 19 2026 15:18</td><td>Miller Harbor</td><td>Tráfico</td><td>n/d</td><td>Harvey Bullock</td><td>Arquivado</td><td>17</td></tr>
+<tr><td>BO-2026-1061</td><td>19-10-26 02:34</td><td>The Narrows</td><td>Incêndio Criminoso</td><td>50000</td><td>Stan Merkel</td><td>Em Investigação</td><td>27 min</td></tr>
+<tr><td>BO-2026-1060</td><td>18/10/2026 11:07</td><td>Diamond District</td><td>Fraude</td><td>32k</td><td>Crispus Allen</td><td>Em Investigação</td><td>3 min</td></tr>
+<tr><td>BO-2026-1059</td><td>17/10/2026 10:13</td><td>Crime Alley</td><td>Agressão</td><td>N/A</td><td>Maggie Sawyer</td><td>Em Investigação</td><td>15 min</td></tr>
+<tr><td>BO-2026-1058</td><td>17-10-26 03:22</td><td>Amusement Mile</td><td>Agressão</td><td>N/A</td><td>Renee Montoya</td><td>Em Investigação</td><td>N/D</td></tr>
+<tr><td>BO-2026-1057</td><td>Outubro 17 2026 01:55</td><td>Crime Alley</td><td>Tráfico</td><td>N/A</td><td>Stan Merkel</td><td>Em Investigação</td><td>16 min</td></tr>
+<tr><td>BO-2026-1056</td><td>Outubro 16 2026 03:20</td><td>Burnley</td><td>Roubo de Carga</td><td>R$ 195.000</td><td>Crispus Allen</td><td>Resolvido</td><td>9</td></tr>
+<tr><td>BO-2026-1055</td><td>Outubro 15 2026 13:03</td><td>Old Gotham</td><td>Estelionato</td><td>N/A</td><td>Stan Merkel</td><td>Em Investigação</td><td>9</td></tr>
+<tr><td>BO-2026-1054</td><td>15-10-26 04:32</td><td>The Bowery</td><td>Arrombamento de Cofre</td><td>270k</td><td>Arnold Flass</td><td>Arquivado</td><td>N/D</td></tr>
+<tr><td>BO-2026-1053</td><td>14-10-26 21:36</td><td>The Bowery</td><td>Arrombamento de Cofre</td><td>R$ 145.000</td><td>Crispus Allen</td><td>RESOLVIDO</td><td>16 min</td></tr>
+<tr><td>BO-2026-1052</td><td>Outubro 14 2026 05:32</td><td>Amusement Mile</td><td>Vandalismo</td><td>1,5k</td><td>Maggie Sawyer</td><td>Em Investigação</td><td>14</td></tr>
+<tr><td>BO-2026-1051</td><td>Outubro 14 2026 00:05</td><td>The Narrows</td><td>Agressão</td><td>N/A</td><td>Renee Montoya</td><td>resolvido</td><td>26</td></tr>
+<tr><td>BO-2026-1050</td><td>13-10-26 23:43</td><td>The Narrows</td><td>Tráfico</td><td>N/A</td><td>Crispus Allen</td><td>RESOLVIDO</td><td>23 min</td></tr>
+<tr><td>BO-2026-1049</td><td>Outubro 13 2026 22:37</td><td>Amusement Mile</td><td>Roubo a Transeunte</td><td>R$ 2.500</td><td>Renee Montoya</td><td>Em Investigação</td><td>16 min</td></tr>
+<tr><td>BO-2026-1048</td><td>Outubro 13 2026 09:35</td><td>Crime Alley</td><td>Furto</td><td>N/A</td><td>Crispus Allen</td><td>Em Investigação</td><td>22</td></tr>
+<tr><td>BO-2026-1047</td><td>13-10-26 02:59</td><td>Amusement Mile</td><td>Vandalismo</td><td>R$ 6.500</td><td>Stan Merkel</td><td>Arquivado</td><td>13 min</td></tr>
+<tr><td>BO-2026-1046</td><td>12-10-26 14:30</td><td>The Bowery</td><td>Furto</td><td>11000</td><td>Arnold Flass</td><td>arquivado</td><td>11</td></tr>
+<tr><td>BO-2026-1045</td><td>12/10/2026 12:22</td><td>Burnley</td><td>Furto de Veículo</td><td>78k</td><td>Crispus Allen</td><td>Resolvido</td><td>14</td></tr>
+<tr><td>BO-2026-1044</td><td>Outubro 12 2026 11:32</td><td>The Narrows</td><td>Agressão</td><td>N/A</td><td>Renee Montoya</td><td>Resolvido</td><td>22 min</td></tr>
+<tr><td>BO-2026-1043</td><td>12-10-26 10:17</td><td>The Narrows</td><td>Vandalismo</td><td>R$ 750</td><td>Harvey Bullock</td><td>Resolvido</td><td>24</td></tr>
+<tr><td>BO-2026-1042</td><td>Outubro 12 2026 00:32</td><td>The Bowery</td><td>Roubo a Joalheria</td><td>R$ 410 mil</td><td>Arnold Flass</td><td>EM INVESTIGAÇÃO</td><td>14</td></tr>
+<tr><td>BO-2026-1041</td><td>Outubro 11 2026 22:11</td><td>The Narrows</td><td>Agressão</td><td>N/A</td><td>Harvey Bullock</td><td>Resolvido</td><td>22</td></tr>
+<tr><td>BO-2026-1040</td><td>Outubro 11 2026 09:15</td><td>The Bowery</td><td>Arrombamento de Cofre</td><td>R$ 127.000</td><td>Harvey Bullock</td><td>Arquivado</td><td>15 min</td></tr>
+<tr><td>BO-2026-1039</td><td>10-10-26 07:20</td><td>Amusement Mile</td><td>Vandalismo</td><td>2000</td><td>Crispus Allen</td><td>Em Investigação</td><td>13 min</td></tr>
+<tr><td>BO-2026-1038</td><td>08/10/2026 05:23</td><td>The Bowery</td><td>Roubo a Joalheria</td><td>R$ 300.000</td><td>Arnold Flass</td><td>Arquivado</td><td>14</td></tr>
+<tr><td>BO-2026-1037</td><td>07/10/2026 23:30</td><td>The Narrows</td><td>Vandalismo</td><td>1500</td><td>Stan Merkel</td><td>Resolvido</td><td>23 min</td></tr>
+<tr><td>BO-2026-1036</td><td>07-10-26 06:54</td><td>Park Row</td><td>Fraude</td><td>R$ 74 mil</td><td>Renee Montoya</td><td>EM INVESTIGAÇÃO</td><td>9</td></tr>
+<tr><td>BO-2026-1035</td><td>07/10/2026 02:59</td><td>The Bowery</td><td>Arrombamento de Cofre</td><td>160000</td><td>Arnold Flass</td><td>arquivado</td><td>8</td></tr>
+<tr><td>BO-2026-1034</td><td>06/10/2026 05:05</td><td>The Bowery</td><td>Roubo a Joalheria</td><td>R$ 490.000</td><td>Arnold Flass</td><td>Arquivado</td><td>6</td></tr>
+<tr><td>BO-2026-1033</td><td>Outubro 4 2026 06:14</td><td>Bowery</td><td>Roubo de Carga</td><td>245k</td><td>Crispus Allen</td><td>Arquivado</td><td>13</td></tr>
+<tr><td>BO-2026-1032</td><td>04-10-26 04:13</td><td>Miller Harbor</td><td>Tráfico</td><td>N/A</td><td>Crispus Allen</td><td>Arquivado</td><td>16</td></tr>
+<tr><td>BO-2026-1031</td><td>04/10/2026 01:10</td><td>Crime Alley</td><td>Agressão</td><td>N/A</td><td>Stan Merkel</td><td>Em Investigação</td><td>23</td></tr>
+<tr><td>BO-2026-1030</td><td>Outubro 4 2026 00:47</td><td>Crime Alley</td><td>Roubo a Transeunte</td><td>2,5k</td><td>Crispus Allen</td><td>Arquivado</td><td>19</td></tr>
+<tr><td>BO-2026-1029</td><td>Outubro 2 2026 03:37</td><td>The Bowery</td><td>Assalto a Banco</td><td>R$ 940.000</td><td>Arnold Flass</td><td>Arquivado</td><td>11 min</td></tr>
+<tr><td>BO-2026-1028</td><td>Outubro 1 2026 22:48</td><td>Miller Harbor</td><td>Furto</td><td>R$ 14.000</td><td>Maggie Sawyer</td><td>Em Investigação</td><td>16 min</td></tr>
+<tr><td>BO-2026-1027</td><td>01/10/2026 15:28</td><td>The Narrows</td><td>Agressão</td><td>n/d</td><td>Maggie Sawyer</td><td>Em Investigação</td><td>17 min</td></tr>
+<tr><td>BO-2026-1026</td><td>01-10-26 02:49</td><td>Crime Alley</td><td>Roubo a Transeunte</td><td>R$ 300</td><td>Maggie Sawyer</td><td>Arquivado</td><td>16 min</td></tr>
+<tr><td>BO-2026-1025</td><td>30/09/2026 00:14</td><td>Crime Alley</td><td>Roubo a Transeunte</td><td>R$ 800</td><td>Crispus Allen</td><td>Em Investigação</td><td>17</td></tr>
+<tr><td>BO-2026-1024</td><td>Setembro 29 2026 15:47</td><td>Robbinsville</td><td>Furto</td><td>2k</td><td>Maggie Sawyer</td><td>Resolvido</td><td>15 min</td></tr>
+<tr><td>BO-2026-1023</td><td>28-09-26 05:38</td><td>Old Gotham</td><td>Fraude</td><td>14500</td><td>Crispus Allen</td><td>Em Investigação</td><td>12 min</td></tr>
+<tr><td>BO-2026-1022</td><td>27-09-26 11:51</td><td>Diamond District</td><td>Furto</td><td>R$ 10.000</td><td>Crispus Allen</td><td>arquivado</td><td>9 min</td></tr>
+<tr><td>BO-2026-1021</td><td>26/09/2026 16:31</td><td>Miller Harbor</td><td>Furto</td><td>R$ 6.500</td><td>Crispus Allen</td><td>Resolvido</td><td>17 min</td></tr>
+<tr><td>BO-2026-1020</td><td>24/09/2026 17:00</td><td>Miller Harbor</td><td>Roubo de Carga</td><td>R$ 285.000</td><td>Harvey Bullock</td><td>em investigação</td><td>20</td></tr>
+<tr><td>BO-2026-1019</td><td>23-09-26 22:41</td><td>The Narrows</td><td>Sequestro</td><td>N/A</td><td>Crispus Allen</td><td>Arquivado</td><td>16 min</td></tr>
+<tr><td>BO-2026-1018</td><td>22-09-26 21:04</td><td>The Bowery</td><td>Furto</td><td>R$ 1.500</td><td>Renee Montoya</td><td>Em Investigação</td><td>7 min</td></tr>
+<tr><td>BO-2026-1017</td><td>22/09/2026 11:11</td><td>Robbinsville</td><td>Furto</td><td>R$ 7.500</td><td>Renee Montoya</td><td>Resolvido</td><td>10 min</td></tr>
+<tr><td>BO-2026-1016</td><td>22-09-26 00:18</td><td>The Bowery</td><td>Assalto a Banco</td><td>R$ 405.000</td><td>Arnold Flass</td><td>Em Investigação</td><td>14</td></tr>
+<tr><td>BO-2026-1015</td><td>Setembro 21 2026 22:24</td><td>Diamond District</td><td>Estelionato</td><td>31000</td><td>Stan Merkel</td><td>Resolvido</td><td>3 min</td></tr>
+<tr><td>BO-2026-1014</td><td>21-09-26 07:15</td><td>The Bowery</td><td>Furto de Veículo</td><td>R$ 24.000</td><td>Renee Montoya</td><td>Resolvido</td><td>14</td></tr>
+<tr><td>BO-2026-1013</td><td>21/09/2026 00:50</td><td>Crime Alley</td><td>Tráfico</td><td>24000</td><td>Harvey Bullock</td><td>Arquivado</td><td>19</td></tr>
+<tr><td>BO-2026-1012</td><td>20/09/2026 22:00</td><td>Robbinsville</td><td>Furto</td><td>10k</td><td>Harvey Bullock</td><td>RESOLVIDO</td><td>11</td></tr>
+<tr><td>BO-2026-1011</td><td>Setembro 20 2026 09:09</td><td>Old Gotham</td><td>Roubo a Transeunte</td><td>1500</td><td>Maggie Sawyer</td><td>Resolvido</td><td>6 min</td></tr>
+<tr><td>BO-2026-1010</td><td>20-09-26 02:26</td><td>Amusement Mile</td><td>Furto</td><td>R$ 1.500</td><td>Crispus Allen</td><td>Arquivado</td><td>13</td></tr>
+<tr><td>BO-2026-1009</td><td>Setembro 19 2026 03:23</td><td>Robbinsville</td><td>Vandalismo</td><td>3k</td><td>Harvey Bullock</td><td>Resolvido</td><td>11 min</td></tr>
+<tr><td>BO-2026-1008</td><td>Setembro 18 2026 22:06</td><td>Miller Harbor</td><td>Desvio de Mercadoria</td><td>245000</td><td>Harvey Bullock</td><td>Arquivado</td><td>18 min</td></tr>
+<tr><td>BO-2026-1007</td><td>Setembro 18 2026 17:47</td><td>Robbinsville</td><td>Roubo a Transeunte</td><td>750</td><td>Maggie Sawyer</td><td>Arquivado</td><td>10 min</td></tr>
+<tr><td>BO-2026-1006</td><td>Setembro 18 2026 05:18</td><td>Park Row</td><td>Furto de Veículo</td><td>R$ 70.000</td><td>Renee Montoya</td><td>Em Investigação</td><td>9 min</td></tr>
+<tr><td>BO-2026-1005</td><td>17-09-26 14:41</td><td>Diamond District</td><td>Estelionato</td><td>R$ 17.500</td><td>Crispus Allen</td><td>Resolvido</td><td>5 min</td></tr>
+<tr><td>BO-2026-1004</td><td>17-09-26 04:11</td><td>Burnley</td><td>Roubo de Carga</td><td>116000</td><td>Crispus Allen</td><td>Em Investigação</td><td>16</td></tr>
+<tr><td>BO-2026-1003</td><td>16-09-26 23:34</td><td>Park Row</td><td>Furto de Veículo</td><td>R$ 56.000</td><td>Renee Montoya</td><td>Arquivado</td><td>3 min</td></tr>
+<tr><td>BO-2026-1002</td><td>Setembro 16 2026 15:27</td><td>Park Row</td><td>Furto de Veículo</td><td>28000</td><td>Crispus Allen</td><td>Resolvido</td><td>14 min</td></tr>
+<tr><td>BO-2026-1001</td><td>15/09/2026 21:22</td><td>Robbinsville</td><td>Roubo a Transeunte</td><td>R$ 450</td><td>Maggie Sawyer</td><td>Em Investigação</td><td>12 min</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="territorios">
+    <h2>Cards de Inteligência Territorial</h2>
+    <div class="territory-grid">
+<div class="territory-card" data-bairro="the-bowery">
+<h3>The Bowery</h3>
+<ul>
+<li><span class="label">Facção Dominante:</span> Família Falcone</li>
+<li><span class="label">Orçamento de Infraestrutura:</span> R$ 2.400.000</li>
+<li><span class="label">População:</span> 61.300 hab.</li>
+<li><span class="label">Câmeras de Vigilância:</span> 48</li>
+<li><span class="label">Viaturas em Patrulha:</span> 9</li>
+<li><span class="label">Taxa de Desemprego:</span> 14,2%</li>
+<li class="infra-status light-level-regular" data-lighting="regular"></li>
+</ul>
+</div>
+<div class="territory-card" data-bairro="crime-alley">
+<h3>Crime Alley</h3>
+<ul>
+<li><span class="label">Facção Dominante:</span> Máscara Negra e gangues de rua</li>
+<li><span class="label">Orçamento de Infraestrutura:</span> R$ 350 mil</li>
+<li><span class="label">População:</span> 38.900 hab.</li>
+<li><span class="label">Câmeras de Vigilância:</span> 11</li>
+<li><span class="label">Viaturas em Patrulha:</span> 4</li>
+<li><span class="label">Taxa de Desemprego:</span> 26,8%</li>
+<li class="infra-status light-level-poor" data-lighting="pessima"></li>
+</ul>
+</div>
+<div class="territory-card" data-bairro="diamond-district">
+<h3>Diamond District</h3>
+<ul>
+<li><span class="label">Facção Dominante:</span> Família Maroni</li>
+<li><span class="label">Orçamento de Infraestrutura:</span> R$ 8,5 milhões</li>
+<li><span class="label">População:</span> 22.400 hab.</li>
+<li><span class="label">Câmeras de Vigilância:</span> 212</li>
+<li><span class="label">Viaturas em Patrulha:</span> 14</li>
+<li><span class="label">Taxa de Desemprego:</span> 4,1%</li>
+<li class="infra-status light-level-good" data-lighting="boa"></li>
+</ul>
+</div>
+<div class="territory-card" data-bairro="the-narrows">
+<h3>The Narrows</h3>
+<ul>
+<li><span class="label">Facção Dominante:</span> Seguidores do Coringa</li>
+<li><span class="label">Orçamento de Infraestrutura:</span> R$ 120.000</li>
+<li><span class="label">População:</span> 54.700 hab.</li>
+<li><span class="label">Câmeras de Vigilância:</span> 6</li>
+<li><span class="label">Viaturas em Patrulha:</span> 3</li>
+<li><span class="label">Taxa de Desemprego:</span> 31,5%</li>
+<li class="infra-status light-level-poor" data-lighting="pessima"></li>
+</ul>
+</div>
+<div class="territory-card" data-bairro="old-gotham">
+<h3>Old Gotham</h3>
+<ul>
+<li><span class="label">Facção Dominante:</span> Sem facção definida</li>
+<li><span class="label">Orçamento de Infraestrutura:</span> R$ 4,2 milhões</li>
+<li><span class="label">População:</span> 47.800 hab.</li>
+<li><span class="label">Câmeras de Vigilância:</span> 96</li>
+<li><span class="label">Viaturas em Patrulha:</span> 11</li>
+<li><span class="label">Taxa de Desemprego:</span> 9,3%</li>
+<li class="infra-status light-level-regular" data-lighting="regular"></li>
+</ul>
+</div>
+<div class="territory-card" data-bairro="park-row">
+<h3>Park Row</h3>
+<ul>
+<li><span class="label">Facção Dominante:</span> Iceberg Lounge (Pinguim)</li>
+<li><span class="label">Orçamento de Infraestrutura:</span> R$ 3.100.000</li>
+<li><span class="label">População:</span> 29.600 hab.</li>
+<li><span class="label">Câmeras de Vigilância:</span> 73</li>
+<li><span class="label">Viaturas em Patrulha:</span> 8</li>
+<li><span class="label">Taxa de Desemprego:</span> 11,7%</li>
+<li class="infra-status light-level-regular" data-lighting="regular"></li>
+</ul>
+</div>
+<div class="territory-card" data-bairro="burnley">
+<h3>Burnley</h3>
+<ul>
+<li><span class="label">Facção Dominante:</span> Irmandade das Docas</li>
+<li><span class="label">Orçamento de Infraestrutura:</span> R$ 1,5 milhão</li>
+<li><span class="label">População:</span> 44.100 hab.</li>
+<li><span class="label">Câmeras de Vigilância:</span> 31</li>
+<li><span class="label">Viaturas em Patrulha:</span> 6</li>
+<li><span class="label">Taxa de Desemprego:</span> 17,9%</li>
+<li class="infra-status light-level-regular" data-lighting="regular"></li>
+</ul>
+</div>
+<div class="territory-card" data-bairro="miller-harbor">
+<h3>Miller Harbor</h3>
+<ul>
+<li><span class="label">Facção Dominante:</span> Cartel do Porto</li>
+<li><span class="label">Orçamento de Infraestrutura:</span> R$ 480 mil</li>
+<li><span class="label">População:</span> 36.200 hab.</li>
+<li><span class="label">Câmeras de Vigilância:</span> 14</li>
+<li><span class="label">Viaturas em Patrulha:</span> 5</li>
+<li><span class="label">Taxa de Desemprego:</span> 23,6%</li>
+<li class="infra-status light-level-poor" data-lighting="pessima"></li>
+</ul>
+</div>
+<div class="territory-card" data-bairro="robbinsville">
+<h3>Robbinsville</h3>
+<ul>
+<li><span class="label">Facção Dominante:</span> Sem facção definida</li>
+<li><span class="label">Orçamento de Infraestrutura:</span> R$ 2.600.000</li>
+<li><span class="label">População:</span> 52.500 hab.</li>
+<li><span class="label">Câmeras de Vigilância:</span> 58</li>
+<li><span class="label">Viaturas em Patrulha:</span> 10</li>
+<li><span class="label">Taxa de Desemprego:</span> 10,4%</li>
+<li class="infra-status light-level-good" data-lighting="boa"></li>
+</ul>
+</div>
+<div class="territory-card" data-bairro="amusement-mile">
+<h3>Amusement Mile</h3>
+<ul>
+<li><span class="label">Facção Dominante:</span> Gangue do Carrossel</li>
+<li><span class="label">Orçamento de Infraestrutura:</span> R$ 900 mil</li>
+<li><span class="label">População:</span> 33.800 hab.</li>
+<li><span class="label">Câmeras de Vigilância:</span> 22</li>
+<li><span class="label">Viaturas em Patrulha:</span> 5</li>
+<li><span class="label">Taxa de Desemprego:</span> 20,3%</li>
+<li class="infra-status light-level-poor" data-lighting="pessima"></li>
+</ul>
+</div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  DPGC // Uso exclusivo de pessoal autorizado // Dados fictícios para fins didáticos (Ciência de Dados).
+</footer>
+<div class="tape"></div>
+</body>
+</html>
